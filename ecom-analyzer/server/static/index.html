@@ -795,12 +795,18 @@
                 <div class="card">
                     <div class="card-title">AI 配置</div>
                     <label>AI 提供商</label>
-                    <select id="ai-provider">
+                    <select id="ai-provider" onchange="onProviderChange('analyze')">
                         <option value="gemini">Google Gemini</option>
                         <option value="openai">OpenAI</option>
+                        <option value="custom">自定义 / 中转</option>
                     </select>
                     <label>API Key</label>
                     <input type="password" id="ai-apikey" placeholder="输入 API Key">
+                    <label>API 请求端点 <span style="color:#64748b;font-weight:400">（留空使用默认地址）</span></label>
+                    <input type="text" id="ai-endpoint"
+                        placeholder="例如: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent">
+                    <div id="analyze-endpoint-hint" style="font-size:11px;color:#64748b;margin-top:5px;line-height:1.6">
+                    </div>
                     <label>分析关键词（用于报告标题）</label>
                     <input type="text" id="analyze-keyword" placeholder="例如: Smart Pet Feeder">
                     <div class="btn-row">
@@ -825,12 +831,19 @@
                 <div class="card">
                     <div class="card-title">默认 AI 配置</div>
                     <label>默认 AI 提供商</label>
-                    <select id="setting-provider" onchange="saveSettings()">
+                    <select id="setting-provider" onchange="onProviderChange('setting'); saveSettings()">
                         <option value="gemini">Google Gemini</option>
                         <option value="openai">OpenAI</option>
+                        <option value="custom">自定义 / 中转</option>
                     </select>
                     <label>默认 API Key（保存在浏览器本地）</label>
                     <input type="password" id="setting-apikey" placeholder="输入后自动保存" oninput="saveSettings()">
+                    <label>API 请求端点 <span style="color:#64748b;font-weight:400">（留空使用默认地址）</span></label>
+                    <input type="text" id="setting-endpoint"
+                        placeholder="例如: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+                        oninput="saveSettings()">
+                    <div id="setting-endpoint-hint" style="font-size:11px;color:#64748b;margin-top:5px;line-height:1.6">
+                    </div>
                 </div>
                 <div class="card">
                     <div class="card-title">默认 Prompt 模板</div>
@@ -858,6 +871,52 @@
     </div>
 
     <script>
+        // ===== 默认 Prompt 模板 =====
+        const DEFAULT_PROMPT = `# 角色
+你是一位拥有 10 年经验的跨境电商选品专家，熟悉 Amazon、TikTok Shop 的流量规则、供应链成本结构和社交媒体营销趋势。
+
+# 任务
+分析关键词「{{keyword}}」在 2026 年的跨境电商市场潜力。以下是从 Amazon / TikTok Shop 抓取的热销商品数据：
+
+{{products}}
+
+# 评分维度说明
+对每个商品从以下三个维度打分（1-10 分）：
+
+1. **技术门槛**（tech_barrier）：1 = 完全无门槛、任何工厂都能做；10 = 需要专利/芯片/复杂工艺。
+   - 评分越低，说明入场越容易，竞争也越激烈；评分越高，说明护城河强但供应链难度大。
+
+2. **社交媒体传播力**（social_viral_score）：1 = 纯功能品、难以制造内容；10 = 天然适合短视频/开箱/测评，自带话题性。
+   - 重点考量：视觉冲击力、使用场景是否有趣、是否能引发情绪共鸣。
+
+3. **利润率**（profit_margin_score）：1 = 红海价格战、利润极薄；10 = 高溢价空间、差异化明显。
+   - 综合考量：售价区间、同类竞品密度、品牌溢价可能性、物流成本（体积/重量）。
+
+# 输出要求
+严格按照以下 JSON 格式输出，不要输出任何 JSON 以外的内容：
+
+{
+  "keyword": "关键词",
+  "total_products": 商品数量,
+  "market_overview": "100字以内的市场整体判断，包括竞争格局、需求趋势、2026年机会窗口",
+  "top_products": [
+    {
+      "title": "商品标题",
+      "source": "Amazon 或 TikTokShop",
+      "price": "价格",
+      "tech_barrier": 技术门槛评分,
+      "social_viral_score": 社交传播力评分,
+      "profit_margin_score": 利润率评分,
+      "score": 三项均值×10后取整的综合分,
+      "worth_following": true或false,
+      "reason": "50字以内，说明值得/不值得跟进的核心理由"
+    }
+  ],
+  "opportunities": ["具体机会点，结合2026年趋势，至少3条"],
+  "risks": ["具体风险点，至少2条"],
+  "recommendation": "150字以内的综合选品建议，给出明确的行动指引"
+}`;
+
         // ===== 全局状态 =====
         let currentProducts = [];   // 当前展示的商品
         let selectedIds = new Set(); // 选中的商品索引
@@ -877,24 +936,43 @@
         }
 
         // ===== 设置持久化 =====
+        const ENDPOINT_HINTS = {
+            gemini: '默认: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+            openai: '默认: https://api.openai.com/v1/chat/completions（兼容任何 OpenAI 格式中转）',
+            custom: '填入完整的 POST 端点 URL。含 generateContent 的地址自动识别为 Gemini 格式，其余走 OpenAI Chat Completions 格式。',
+        };
+
+        function onProviderChange(scope) {
+            const isSettings = scope === 'setting';
+            const providerEl = document.getElementById(isSettings ? 'setting-provider' : 'ai-provider');
+            const hintEl = document.getElementById(isSettings ? 'setting-endpoint-hint' : 'analyze-endpoint-hint');
+            if (hintEl && providerEl) hintEl.textContent = ENDPOINT_HINTS[providerEl.value] || '';
+        }
+
         function saveSettings() {
             localStorage.setItem('ai_provider', document.getElementById('setting-provider').value);
             localStorage.setItem('ai_apikey', document.getElementById('setting-apikey').value);
+            localStorage.setItem('ai_endpoint', document.getElementById('setting-endpoint').value);
             localStorage.setItem('prompt_template', document.getElementById('setting-prompt').value);
         }
         function loadSettings() {
             const p = localStorage.getItem('ai_provider') || 'gemini';
             const k = localStorage.getItem('ai_apikey') || '';
-            const t = localStorage.getItem('prompt_template') || '';
+            const e = localStorage.getItem('ai_endpoint') || '';
+            const t = localStorage.getItem('prompt_template') || DEFAULT_PROMPT;
             document.getElementById('setting-provider').value = p;
             document.getElementById('setting-apikey').value = k;
+            document.getElementById('setting-endpoint').value = e;
             document.getElementById('setting-prompt').value = t;
+            onProviderChange('setting');
         }
         // 初始化时同步到分析页
         function syncSettingsToAnalyze() {
             document.getElementById('ai-provider').value = localStorage.getItem('ai_provider') || 'gemini';
             document.getElementById('ai-apikey').value = localStorage.getItem('ai_apikey') || '';
-            document.getElementById('prompt-template').value = localStorage.getItem('prompt_template') || '';
+            document.getElementById('ai-endpoint').value = localStorage.getItem('ai_endpoint') || '';
+            document.getElementById('prompt-template').value = localStorage.getItem('prompt_template') || DEFAULT_PROMPT;
+            onProviderChange('analyze');
         }
 
         // ===== 抓取 =====
@@ -1202,7 +1280,8 @@
         async function runAnalyze() {
             if (!analyzeProducts.length) { alert('请先在商品列表中选择商品并点击「发送分析」'); return; }
             const apiKey = document.getElementById('ai-apikey').value.trim();
-            if (!apiKey) { alert('请输入 API Key'); return; }
+            const endpoint = document.getElementById('ai-endpoint').value.trim();
+            if (!apiKey && !endpoint) { alert('请输入 API Key 或填写自定义端点'); return; }
 
             const btn = document.getElementById('btn-analyze');
             btn.disabled = true;
@@ -1216,6 +1295,7 @@
                     prompt_template: document.getElementById('prompt-template').value,
                     api_key: apiKey,
                     provider: document.getElementById('ai-provider').value,
+                    endpoint: endpoint,
                     keyword: document.getElementById('analyze-keyword').value,
                 });
                 if (!res.ok) throw new Error(res.error);
@@ -1232,6 +1312,14 @@
 
         function renderReport(r) {
             const container = document.getElementById('report-content');
+            const scoreBar = (label, val, color) => `
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span style="font-size:11px;color:#64748b;width:80px;flex-shrink:0">${label}</span>
+                <div style="flex:1;height:6px;background:#22263a;border-radius:3px;overflow:hidden">
+                  <div style="width:${val * 10}%;height:100%;background:${color};border-radius:3px;transition:width .4s"></div>
+                </div>
+                <span style="font-size:11px;color:${color};width:20px;text-align:right">${val}</span>
+              </div>`;
             container.innerHTML = `
     <div class="report-section">
       <h3>市场概况</h3>
@@ -1239,15 +1327,29 @@
     </div>
     ${r.top_products && r.top_products.length ? `
     <div class="report-section">
-      <h3>推荐商品 TOP ${r.top_products.length}</h3>
+      <h3>商品评估 TOP ${r.top_products.length}</h3>
       ${r.top_products.map((p, i) => `
-        <div class="rank-item">
-          <div class="rank-num">${i + 1}</div>
-          <div class="rank-info">
-            <div class="rank-title">${escHtml(p.title || '')}</div>
-            <div class="rank-reason">${escHtml(p.reason || '')}</div>
+        <div class="rank-item" style="flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px;width:100%">
+            <div class="rank-num">${i + 1}</div>
+            <div style="flex:1">
+              <div class="rank-title">${escHtml(p.title || '')}</div>
+              <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+                ${p.source ? `<span style="font-size:11px;color:#64748b">${escHtml(p.source)}</span>` : ''}
+                ${p.price ? `<span style="font-size:11px;color:#94a3b8">💰 ${escHtml(p.price)}</span>` : ''}
+                <span class="rank-score">综合 ${p.score}分</span>
+                <span style="font-size:11px;padding:1px 7px;border-radius:3px;${p.worth_following ? 'background:#14532d;color:#4ade80' : 'background:#450a0a;color:#f87171'}">
+                  ${p.worth_following ? '✓ 值得跟进' : '✗ 暂不推荐'}
+                </span>
+              </div>
+            </div>
           </div>
-          <div class="rank-score">${p.score}分</div>
+          <div style="padding-left:34px;width:100%">
+            ${scoreBar('技术门槛', p.tech_barrier || 0, '#f59e0b')}
+            ${scoreBar('社交传播力', p.social_viral_score || 0, '#a78bfa')}
+            ${scoreBar('利润率', p.profit_margin_score || 0, '#34d399')}
+            ${p.reason ? `<div style="font-size:12px;color:#94a3b8;margin-top:6px;line-height:1.5">${escHtml(p.reason)}</div>` : ''}
+          </div>
         </div>
       `).join('')}
     </div>` : ''}

@@ -308,6 +308,7 @@ func handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		PromptTemplate string            `json:"prompt_template"`
 		APIKey         string            `json:"api_key"`
 		Provider       string            `json:"provider"` // gemini | openai
+		Endpoint       string            `json:"endpoint"` // 自定义 API 端点
 		Keyword        string            `json:"keyword"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -315,15 +316,31 @@ func handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 临时设置环境变量（仅本次请求）
+	// 把 key 写入环境变量供 callGemini/callOpenAI 兜底使用
 	switch req.Provider {
 	case "openai":
-		os.Setenv("OPENAI_API_KEY", req.APIKey)
+		if req.APIKey != "" {
+			os.Setenv("OPENAI_API_KEY", req.APIKey)
+		}
 	default:
-		os.Setenv("GEMINI_API_KEY", req.APIKey)
+		if req.APIKey != "" {
+			os.Setenv("GEMINI_API_KEY", req.APIKey)
+		}
 	}
 
-	report, err := ai.AnalyzeWithTemplate(req.Keyword, req.Products, req.PromptTemplate)
+	// 如果用户填了自定义端点，把 key 拼进去（Gemini URL 参数形式）或留给 callEndpoint 处理
+	endpoint := req.Endpoint
+	if endpoint != "" && req.APIKey != "" && strings.Contains(endpoint, "generativelanguage.googleapis.com") {
+		if !strings.Contains(endpoint, "key=") {
+			sep := "?"
+			if strings.Contains(endpoint, "?") {
+				sep = "&"
+			}
+			endpoint = endpoint + sep + "key=" + req.APIKey
+		}
+	}
+
+	report, err := ai.AnalyzeWithTemplate(req.Keyword, req.Products, req.PromptTemplate, endpoint)
 	if err != nil {
 		jsonErr(w, err.Error(), 500)
 		return
