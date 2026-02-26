@@ -89,6 +89,10 @@ func ScrapeWithPlatforms(keyword string, platforms []string, progress func(strin
 	}{
 		{"amazon", "Amazon", scrapeAmazon},
 		{"tiktok", "TikTokShop", scrapeTikTokShop},
+		{"ebay", "eBay", scrapeEbay},
+		{"etsy", "Etsy", scrapeEtsy},
+		{"walmart", "Walmart", scrapeWalmart},
+		{"aliexpress", "AliExpress", scrapeAliExpress},
 	}
 
 	for _, s := range allSources {
@@ -148,6 +152,80 @@ func newPage(browser playwright.Browser) (playwright.Page, error) {
 		return nil, err
 	}
 	return ctx.NewPage()
+}
+
+// newStealthPage 创建带 stealth 脚本的页面，用于反爬严格的平台
+func newStealthPage(browser playwright.Browser) (playwright.Page, error) {
+	ctx, err := browser.NewContext(playwright.BrowserNewContextOptions{
+		UserAgent: playwright.String("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"),
+		ExtraHttpHeaders: map[string]string{
+			"Accept-Language":           "en-US,en;q=0.9",
+			"Accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+			"Accept-Encoding":           "gzip, deflate, br",
+			"Upgrade-Insecure-Requests": "1",
+			"Sec-Fetch-Dest":            "document",
+			"Sec-Fetch-Mode":            "navigate",
+			"Sec-Fetch-Site":            "none",
+			"Sec-Fetch-User":            "?1",
+			"sec-ch-ua":                 `"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"`,
+			"sec-ch-ua-mobile":          "?0",
+			"sec-ch-ua-platform":        `"Windows"`,
+		},
+		Viewport: &playwright.Size{Width: 1366, Height: 768},
+		Locale:   playwright.String("en-US"),
+		TimezoneId: playwright.String("America/New_York"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	page, err := ctx.NewPage()
+	if err != nil {
+		return nil, err
+	}
+	// 注入 stealth 脚本，隐藏 webdriver 特征
+	page.AddInitScript(playwright.Script{Content: playwright.String(`
+		// 隐藏 webdriver
+		Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+		// 模拟真实插件
+		Object.defineProperty(navigator, 'plugins', {
+			get: () => {
+				const arr = [
+					{ name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+					{ name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: '' },
+					{ name: 'Native Client', filename: 'internal-nacl-plugin', description: '' },
+				];
+				arr.__proto__ = PluginArray.prototype;
+				return arr;
+			}
+		});
+		// 语言
+		Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+		// Chrome 对象
+		window.chrome = {
+			app: { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' }, RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' } },
+			runtime: { OnInstalledReason: {}, OnRestartRequiredReason: {}, PlatformArch: {}, PlatformNaclArch: {}, PlatformOs: {}, RequestUpdateCheckStatus: {} },
+		};
+		// 权限
+		const originalQuery = window.navigator.permissions.query;
+		window.navigator.permissions.query = (parameters) =>
+			parameters.name === 'notifications'
+				? Promise.resolve({ state: Notification.permission })
+				: originalQuery(parameters);
+		// 隐藏自动化特征
+		delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+		delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+		delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+		// 模拟真实屏幕尺寸
+		Object.defineProperty(screen, 'width', { get: () => 1366 });
+		Object.defineProperty(screen, 'height', { get: () => 768 });
+		Object.defineProperty(screen, 'availWidth', { get: () => 1366 });
+		Object.defineProperty(screen, 'availHeight', { get: () => 728 });
+		// 硬件并发数
+		Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+		// 设备内存
+		Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+	`)})
+	return page, nil
 }
 
 // scrapeAmazon 抓取 Amazon 搜索结果
@@ -475,4 +553,9 @@ func extractTikTokCard(card playwright.ElementHandle, rules ScrapeRules) Product
 // urlEncode 简单 URL 编码关键词
 func urlEncode(s string) string {
 	return strings.ReplaceAll(s, " ", "+")
+}
+
+// waitRandom 在页面上随机等待，复用 proxy.RandomSleep
+func waitRandom(_ playwright.Page, minSec, maxSec int) {
+	proxy.RandomSleep(minSec, maxSec)
 }

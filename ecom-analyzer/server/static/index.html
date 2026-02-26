@@ -666,8 +666,12 @@
                     <label>搜索关键词</label>
                     <input type="text" id="scrape-keyword" placeholder="例如: Smart Pet Feeder" value="Smart Pet Feeder">
                     <label>选择平台</label>
-                    <div class="checkbox-group">
+                    <div class="checkbox-group" style="flex-wrap:wrap;gap:10px 24px">
                         <label><input type="checkbox" id="plat-amazon" checked> Amazon</label>
+                        <label><input type="checkbox" id="plat-ebay"> eBay</label>
+                        <label><input type="checkbox" id="plat-walmart"> Walmart</label>
+                        <label><input type="checkbox" id="plat-etsy"> Etsy</label>
+                        <label><input type="checkbox" id="plat-aliexpress"> AliExpress</label>
                         <label><input type="checkbox" id="plat-tiktok"> TikTok Shop</label>
                     </div>
                 </div>
@@ -829,6 +833,20 @@
             <div class="page" id="page-settings">
                 <div class="page-title">⚙️ 设置</div>
                 <div class="card">
+                    <div class="card-title">第三方平台 API Key</div>
+                    <label>eBay App ID <span style="color:#64748b;font-weight:400">（用于 eBay Browse
+                            API，留空则用浏览器抓取）</span></label>
+                    <input type="text" id="setting-ebay-app-id" placeholder="例如: YourApp-xxx-PRD-xxxxxxxx"
+                        oninput="saveSettings()">
+                    <label>eBay Cert ID <span style="color:#64748b;font-weight:400">（配合 App ID 使用）</span></label>
+                    <input type="password" id="setting-ebay-cert-id" placeholder="eBay OAuth Client Secret"
+                        oninput="saveSettings()">
+                    <label>Etsy API Key <span style="color:#64748b;font-weight:400">（用于 Etsy Open API
+                            v3，留空则用浏览器抓取）</span></label>
+                    <input type="text" id="setting-etsy-api-key" placeholder="例如: xxxxxxxxxxxxxxxxxxxxxxxx"
+                        oninput="saveSettings()">
+                </div>
+                <div class="card">
                     <div class="card-title">默认 AI 配置</div>
                     <label>默认 AI 提供商</label>
                     <select id="setting-provider" onchange="onProviderChange('setting'); saveSettings()">
@@ -954,6 +972,9 @@
             localStorage.setItem('ai_apikey', document.getElementById('setting-apikey').value);
             localStorage.setItem('ai_endpoint', document.getElementById('setting-endpoint').value);
             localStorage.setItem('prompt_template', document.getElementById('setting-prompt').value);
+            localStorage.setItem('ebay_app_id', document.getElementById('setting-ebay-app-id').value);
+            localStorage.setItem('ebay_cert_id', document.getElementById('setting-ebay-cert-id').value);
+            localStorage.setItem('etsy_api_key', document.getElementById('setting-etsy-api-key').value);
         }
         function loadSettings() {
             const p = localStorage.getItem('ai_provider') || 'gemini';
@@ -964,6 +985,9 @@
             document.getElementById('setting-apikey').value = k;
             document.getElementById('setting-endpoint').value = e;
             document.getElementById('setting-prompt').value = t;
+            document.getElementById('setting-ebay-app-id').value = localStorage.getItem('ebay_app_id') || '';
+            document.getElementById('setting-ebay-cert-id').value = localStorage.getItem('ebay_cert_id') || '';
+            document.getElementById('setting-etsy-api-key').value = localStorage.getItem('etsy_api_key') || '';
             onProviderChange('setting');
         }
         // 初始化时同步到分析页
@@ -982,6 +1006,10 @@
 
             const platforms = [];
             if (document.getElementById('plat-amazon').checked) platforms.push('amazon');
+            if (document.getElementById('plat-ebay').checked) platforms.push('ebay');
+            if (document.getElementById('plat-walmart').checked) platforms.push('walmart');
+            if (document.getElementById('plat-etsy').checked) platforms.push('etsy');
+            if (document.getElementById('plat-aliexpress').checked) platforms.push('aliexpress');
             if (document.getElementById('plat-tiktok').checked) platforms.push('tiktok');
             if (!platforms.length) { alert('请至少选择一个平台'); return; }
 
@@ -1000,8 +1028,12 @@
             btn.textContent = '抓取中...';
             setStatus('scrape-status', 'running', '<span class="progress-dot"></span>正在启动浏览器...');
 
+            const ebayAppId = localStorage.getItem('ebay_app_id') || '';
+            const ebayCertId = localStorage.getItem('ebay_cert_id') || '';
+            const etsyApiKey = localStorage.getItem('etsy_api_key') || '';
+
             try {
-                const res = await post('/api/scrape', { keyword, platforms, rules });
+                const res = await post('/api/scrape', { keyword, platforms, rules, ebay_app_id: ebayAppId, ebay_cert_id: ebayCertId, etsy_api_key: etsyApiKey });
                 if (!res.ok) throw new Error(res.error);
                 pollJob(res.data.job_id);
             } catch (e) {

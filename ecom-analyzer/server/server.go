@@ -80,9 +80,12 @@ func handleScrape(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Keyword   string              `json:"keyword"`
-		Platforms []string            `json:"platforms"`
-		Rules     scraper.ScrapeRules `json:"rules"`
+		Keyword    string              `json:"keyword"`
+		Platforms  []string            `json:"platforms"`
+		Rules      scraper.ScrapeRules `json:"rules"`
+		EbayAppID  string              `json:"ebay_app_id"`
+		EbayCertID string              `json:"ebay_cert_id"`
+		EtsyAPIKey string              `json:"etsy_api_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Keyword == "" {
 		jsonErr(w, "参数错误: keyword 必填", 400)
@@ -91,6 +94,16 @@ func handleScrape(w http.ResponseWriter, r *http.Request) {
 	// 补默认值
 	if req.Rules.MaxItems <= 0 {
 		req.Rules.MaxItems = 10
+	}
+	// 临时设置第三方平台 Key（仅本次请求生效，goroutine 内读取）
+	if req.EbayAppID != "" {
+		os.Setenv("EBAY_APP_ID", req.EbayAppID)
+	}
+	if req.EbayCertID != "" {
+		os.Setenv("EBAY_CERT_ID", req.EbayCertID)
+	}
+	if req.EtsyAPIKey != "" {
+		os.Setenv("ETSY_API_KEY", req.EtsyAPIKey)
 	}
 
 	jobID := fmt.Sprintf("job_%d", time.Now().UnixMilli())
