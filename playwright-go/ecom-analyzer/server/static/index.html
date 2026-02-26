@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨境电商选品分析工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+            overflow: hidden
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            width: 220px;
+            background: #1a1d27;
+            border-right: 1px solid #2d3148;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0
+        }
+
+        .logo {
+            padding: 20px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #7c8cf8;
+            border-bottom: 1px solid #2d3148;
+            letter-spacing: .5px
+        }
+
+        .nav {
+            padding: 8px 0
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 13px;
+            transition: all .15s;
+            border-left: 3px solid transparent
+        }
+
+        .nav-item:hover {
+            background: #22263a;
+            color: #e2e8f0
+        }
+
+        .nav-item.active {
+            background: #22263a;
+            color: #7c8cf8;
+            border-left-color: #7c8cf8
+        }
+
+        .nav-item .icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center
+        }
+
+        /* 主内容 */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            padding: 24px
+        }
+
+        .page.active {
+            display: flex
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #f1f5f9
+        }
+
+        /* 卡片 */
+        .card {
+            background: #1a1d27;
+            border: 1px solid #2d3148;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #7c8cf8;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 14px
+        }
+
+        /* 表单 */
+        label {
+            display: block;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+            margin-top: 12px
+        }
+
+        label:first-child {
+            margin-top: 0
+        }
+
+        input[type=text],
+        input[type=password],
+        select,
+        textarea {
+            width: 100%;
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #e2e8f0;
+            font-size: 13px;
+            outline: none;
+            transition: border .15s
+        }
+
+        input[type=text]:focus,
+        input[type=password]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #7c8cf8
+        }
+
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+            line-height: 1.5
+        }
+
+        select option {
+            background: #1a1d27
+        }
+
+        /* 复选框组 */
+        .checkbox-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: #e2e8f0;
+            font-size: 13px;
+            margin: 0
+        }
+
+        .checkbox-group input[type=checkbox] {
+            width: 14px;
+            height: 14px;
+            accent-color: #7c8cf8
+        }
+
+        /* 按钮 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all .15s
+        }
+
+        .btn-primary {
+            background: #7c8cf8;
+            color: #fff
+        }
+
+        .btn-primary:hover {
+            background: #6b7cf0
+        }
+
+        .btn-primary:disabled {
+            background: #3d4266;
+            color: #64748b;
+            cursor: not-allowed
+        }
+
+        .btn-secondary {
+            background: #22263a;
+            color: #94a3b8;
+            border: 1px solid #2d3148
+        }
+
+        .btn-secondary:hover {
+            background: #2d3148;
+            color: #e2e8f0
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #fff
+        }
+
+        .btn-danger:hover {
+            background: #dc2626
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap
+        }
+
+        /* 状态条 */
+        .status-bar {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none
+        }
+
+        .status-bar.show {
+            display: block
+        }
+
+        .status-running {
+            background: #1e3a5f;
+            color: #60a5fa;
+            border: 1px solid #1d4ed8
+        }
+
+        .status-done {
+            background: #14532d;
+            color: #4ade80;
+            border: 1px solid #16a34a
+        }
+
+        .status-error {
+            background: #450a0a;
+            color: #f87171;
+            border: 1px solid #dc2626
+        }
+
+        /* 商品列表 */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            margin-top: 4px
+        }
+
+        .product-card {
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            border-radius: 8px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all .15s;
+            position: relative
+        }
+
+        .product-card:hover {
+            border-color: #7c8cf8;
+            transform: translateY(-1px)
+        }
+
+        .product-card.selected {
+            border-color: #7c8cf8;
+            background: #1a1d27
+        }
+
+        .product-card .check {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 18px;
+            height: 18px;
+            accent-color: #7c8cf8
+        }
+
+        .product-badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px
+        }
+
+        .badge-amazon {
+            background: #ff9900;
+            color: #000
+        }
+
+        .badge-tiktok {
+            background: #ff0050;
+            color: #fff
+        }
+
+        .product-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #e2e8f0;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden
+        }
+
+        .product-meta {
+            display: flex;
+            gap: 10px;
+            font-size: 12px;
+            color: #64748b;
+            flex-wrap: wrap
+        }
+
+        .product-meta span {
+            display: flex;
+            align-items: center;
+            gap: 3px
+        }
+
+        /* 详情弹窗 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .7);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center
+        }
+
+        .modal-overlay.show {
+            display: flex
+        }
+
+        .modal {
+            background: #1a1d27;
+            border: 1px solid #2d3148;
+            border-radius: 12px;
+            width: 680px;
+            max-width: 95vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 24px
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #f1f5f9;
+            line-height: 1.4;
+            flex: 1;
+            margin-right: 12px
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1
+        }
+
+        .modal-close:hover {
+            color: #e2e8f0
+        }
+
+        .detail-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 13px
+        }
+
+        .detail-label {
+            color: #64748b;
+            min-width: 60px;
+            flex-shrink: 0
+        }
+
+        .detail-value {
+            color: #e2e8f0
+        }
+
+        .detail-desc {
+            margin-top: 12px;
+            padding: 12px;
+            background: #0f1117;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.6;
+            max-height: 200px;
+            overflow-y: auto
+        }
+
+        /* 文件列表 */
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            border-radius: 6px;
+            font-size: 13px
+        }
+
+        .file-item:hover {
+            border-color: #7c8cf8
+        }
+
+        .file-name {
+            color: #e2e8f0;
+            font-weight: 500
+        }
+
+        .file-meta {
+            color: #64748b;
+            font-size: 11px;
+            margin-top: 2px
+        }
+
+        /* AI 报告 */
+        .report-section {
+            margin-bottom: 16px
+        }
+
+        .report-section h3 {
+            font-size: 13px;
+            color: #7c8cf8;
+            margin-bottom: 8px;
+            font-weight: 600
+        }
+
+        .report-section p {
+            font-size: 13px;
+            color: #e2e8f0;
+            line-height: 1.6
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px
+        }
+
+        .tag {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px
+        }
+
+        .tag-green {
+            background: #14532d;
+            color: #4ade80
+        }
+
+        .tag-red {
+            background: #450a0a;
+            color: #f87171
+        }
+
+        .rank-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            background: #0f1117;
+            border-radius: 6px;
+            margin-bottom: 6px
+        }
+
+        .rank-num {
+            width: 24px;
+            height: 24px;
+            background: #7c8cf8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0
+        }
+
+        .rank-info {
+            flex: 1
+        }
+
+        .rank-title {
+            font-size: 13px;
+            color: #e2e8f0;
+            font-weight: 500
+        }
+
+        .rank-reason {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 3px
+        }
+
+        .rank-score {
+            font-size: 12px;
+            color: #7c8cf8;
+            font-weight: 600
+        }
+
+        /* 进度 */
+        .progress-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #60a5fa;
+            margin-right: 6px;
+            animation: pulse 1s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .3
+            }
+        }
+
+        /* 空状态 */
+        .empty {
+            text-align: center;
+            padding: 48px 24px;
+            color: #64748b
+        }
+
+        .empty .icon {
+            font-size: 40px;
+            margin-bottom: 12px
+        }
+
+        /* 分割线 */
+        .divider {
+            border: none;
+            border-top: 1px solid #2d3148;
+            margin: 16px 0
+        }
+
+        /* 选择栏 */
+        .select-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: #22263a;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 13px
+        }
+
+        .select-bar span {
+            color: #94a3b8
+        }
+
+        .select-bar strong {
+            color: #7c8cf8
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="logo">🛒 选品分析工具</div>
+            <nav class="nav">
+                <div class="nav-item active" onclick="showPage('scrape')">
+                    <span class="icon">🔍</span>抓取商品
+                </div>
+                <div class="nav-item" onclick="showPage('products')">
+                    <span class="icon">📦</span>商品列表
+                </div>
+                <div class="nav-item" onclick="showPage('files')">
+                    <span class="icon">💾</span>本地文件
+                </div>
+                <div class="nav-item" onclick="showPage('analyze')">
+                    <span class="icon">🤖</span>AI 分析
+                </div>
+                <div class="nav-item" onclick="showPage('settings')">
+                    <span class="icon">⚙️</span>设置
+                </div>
+            </nav>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main">
+
+            <!-- 抓取页 -->
+            <div class="page active" id="page-scrape">
+                <div class="page-title">🔍 抓取商品</div>
+                <div class="card">
+                    <div class="card-title">基本配置</div>
+                    <label>搜索关键词</label>
+                    <input type="text" id="scrape-keyword" placeholder="例如: Smart Pet Feeder" value="Smart Pet Feeder">
+                    <label>选择平台</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="plat-amazon" checked> Amazon</label>
+                        <label><input type="checkbox" id="plat-tiktok"> TikTok Shop</label>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">抓取规则</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px">
+                        <div>
+                            <label>抓取数量上限</label>
+                            <input type="text" id="rule-max-items" value="10" placeholder="默认 10，最多 48">
+                        </div>
+                        <div>
+                            <label>排序方式（Amazon）</label>
+                            <select id="rule-sort-by">
+                                <option value="review-rank">评论数排序（热销）</option>
+                                <option value="price-asc-rank">价格从低到高</option>
+                                <option value="price-desc-rank">价格从高到低</option>
+                                <option value="date-desc-rank">最新上架</option>
+                                <option value="avg-customer-review">评分排序</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>最低评分过滤 <span style="color:#64748b">（0 = 不过滤）</span></label>
+                            <input type="text" id="rule-min-rating" value="0" placeholder="例如: 4.0">
+                        </div>
+                        <div>
+                            <label>最少评论数过滤 <span style="color:#64748b">（0 = 不过滤）</span></label>
+                            <input type="text" id="rule-min-reviews" value="0" placeholder="例如: 100">
+                        </div>
+                    </div>
+                    <div style="margin-top:14px">
+                        <label style="margin-bottom:8px">其他选项</label>
+                        <div class="checkbox-group" style="flex-wrap:wrap;gap:12px 24px">
+                            <label><input type="checkbox" id="rule-fetch-detail" checked> 抓取详情页描述</label>
+                            <label><input type="checkbox" id="rule-fetch-image" checked> 抓取商品图片</label>
+                            <label><input type="checkbox" id="rule-prime-only"> 仅 Prime 商品</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="padding:14px 20px">
+                    <div class="btn-row" style="margin:0">
+                        <button class="btn btn-primary" id="btn-scrape" onclick="startScrape()">▶ 开始抓取</button>
+                    </div>
+                    <div class="status-bar" id="scrape-status"></div>
+                </div>
+            </div>
+
+            <!-- 商品列表页 -->
+            <div class="page" id="page-products">
+                <div class="page-title">📦 商品列表</div>
+                <div class="select-bar" id="select-bar" style="display:none">
+                    <span>已选 <strong id="selected-count">0</strong> 个商品</span>
+                    <button class="btn btn-sm btn-secondary" onclick="selectAll()">全选</button>
+                    <button class="btn btn-sm btn-secondary" onclick="clearSelect()">清空</button>
+                    <button class="btn btn-sm btn-primary" onclick="saveSelected()">💾 保存选中</button>
+                    <button class="btn btn-sm btn-primary" onclick="sendToAnalyze()">🤖 发送分析</button>
+                </div>
+                <div id="product-list">
+                    <div class="empty">
+                        <div class="icon">📭</div>
+                        <div>暂无商品，请先抓取</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 本地文件页 -->
+            <div class="page" id="page-files">
+                <div class="page-title">💾 本地文件</div>
+                <div class="card">
+                    <div class="card-title">已保存的抓取结果</div>
+                    <div class="select-bar" id="file-select-bar" style="display:none;margin-bottom:10px">
+                        <span>已选 <strong id="file-selected-count">0</strong> 个文件</span>
+                        <button class="btn btn-sm btn-secondary" onclick="selectAllFiles()">全选</button>
+                        <button class="btn btn-sm btn-secondary" onclick="clearFileSelect()">清空</button>
+                        <button class="btn btn-sm btn-primary" onclick="showMergeDialog()">🔀 合并选中</button>
+                    </div>
+                    <div id="file-list">
+                        <div class="empty">
+                            <div class="icon">📂</div>
+                            <div>暂无文件</div>
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" onclick="loadFiles()">🔄 刷新</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 合并对话框 -->
+            <div class="modal-overlay" id="merge-modal" onclick="closeMergeModal(event)">
+                <div class="modal" style="width:460px">
+                    <div class="modal-header">
+                        <div class="modal-title">🔀 合并文件</div>
+                        <button class="modal-close" onclick="closeMergeModal()">✕</button>
+                    </div>
+                    <div id="merge-file-list" style="margin-bottom:14px;font-size:13px;color:#94a3b8"></div>
+                    <label>输出文件名</label>
+                    <input type="text" id="merge-output" placeholder="merged_xxx.json">
+                    <div class="checkbox-group" style="margin-top:10px">
+                        <label><input type="checkbox" id="merge-dedupe" checked> 按 URL/标题去重</label>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="doMerge()">确认合并</button>
+                        <button class="btn btn-secondary" onclick="closeMergeModal()">取消</button>
+                    </div>
+                    <div class="status-bar" id="merge-status"></div>
+                </div>
+            </div>
+
+            <!-- AI 分析页 -->
+            <div class="page" id="page-analyze">
+                <div class="page-title">🤖 AI 分析</div>
+                <div class="card">
+                    <div class="card-title">待分析商品</div>
+                    <div id="analyze-products-info" style="font-size:13px;color:#94a3b8">
+                        尚未选择商品，请在商品列表中勾选后点击「发送分析」
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Prompt 模板</div>
+                    <label>模板说明：使用 <code style="color:#7c8cf8">{{keyword}}</code> 和 <code
+                            style="color:#7c8cf8">{{products}}</code> 作为占位符，留空则使用默认模板</label>
+                    <textarea id="prompt-template" rows="8"
+                        placeholder="留空使用默认模板&#10;&#10;示例：&#10;你是选品专家，分析关键词「{{keyword}}」的以下商品数据：&#10;{{products}}&#10;请输出 JSON 格式的分析报告。"></textarea>
+                </div>
+                <div class="card">
+                    <div class="card-title">AI 配置</div>
+                    <label>AI 提供商</label>
+                    <select id="ai-provider">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI</option>
+                    </select>
+                    <label>API Key</label>
+                    <input type="password" id="ai-apikey" placeholder="输入 API Key">
+                    <label>分析关键词（用于报告标题）</label>
+                    <input type="text" id="analyze-keyword" placeholder="例如: Smart Pet Feeder">
+                    <div class="btn-row">
+                        <button class="btn btn-primary" id="btn-analyze" onclick="runAnalyze()">🚀 开始分析</button>
+                    </div>
+                    <div class="status-bar" id="analyze-status"></div>
+                </div>
+                <div id="report-container" style="display:none">
+                    <div class="card">
+                        <div class="card-title">分析报告</div>
+                        <div id="report-content"></div>
+                        <div class="btn-row">
+                            <button class="btn btn-secondary" onclick="copyReport()">📋 复制 JSON</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设置页 -->
+            <div class="page" id="page-settings">
+                <div class="page-title">⚙️ 设置</div>
+                <div class="card">
+                    <div class="card-title">默认 AI 配置</div>
+                    <label>默认 AI 提供商</label>
+                    <select id="setting-provider" onchange="saveSettings()">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI</option>
+                    </select>
+                    <label>默认 API Key（保存在浏览器本地）</label>
+                    <input type="password" id="setting-apikey" placeholder="输入后自动保存" oninput="saveSettings()">
+                </div>
+                <div class="card">
+                    <div class="card-title">默认 Prompt 模板</div>
+                    <textarea id="setting-prompt" rows="10" placeholder="留空使用内置默认模板"
+                        oninput="saveSettings()"></textarea>
+                    <div style="font-size:12px;color:#64748b;margin-top:8px">
+                        占位符：<code style="color:#7c8cf8">{{keyword}}</code> 关键词，<code
+                            style="color:#7c8cf8">{{products}}</code> 商品数据
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /main -->
+    </div><!-- /app -->
+
+    <!-- 商品详情弹窗 -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title"></div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 全局状态 =====
+        let currentProducts = [];   // 当前展示的商品
+        let selectedIds = new Set(); // 选中的商品索引
+        let analyzeProducts = [];    // 待分析的商品
+        let reportRaw = null;        // 原始报告 JSON
+        let pollTimer = null;
+
+        // ===== 页面切换 =====
+        function showPage(name) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + name).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if (name === 'files') loadFiles();
+            if (name === 'products') renderProducts();
+            if (name === 'settings') loadSettings();
+        }
+
+        // ===== 设置持久化 =====
+        function saveSettings() {
+            localStorage.setItem('ai_provider', document.getElementById('setting-provider').value);
+            localStorage.setItem('ai_apikey', document.getElementById('setting-apikey').value);
+            localStorage.setItem('prompt_template', document.getElementById('setting-prompt').value);
+        }
+        function loadSettings() {
+            const p = localStorage.getItem('ai_provider') || 'gemini';
+            const k = localStorage.getItem('ai_apikey') || '';
+            const t = localStorage.getItem('prompt_template') || '';
+            document.getElementById('setting-provider').value = p;
+            document.getElementById('setting-apikey').value = k;
+            document.getElementById('setting-prompt').value = t;
+        }
+        // 初始化时同步到分析页
+        function syncSettingsToAnalyze() {
+            document.getElementById('ai-provider').value = localStorage.getItem('ai_provider') || 'gemini';
+            document.getElementById('ai-apikey').value = localStorage.getItem('ai_apikey') || '';
+            document.getElementById('prompt-template').value = localStorage.getItem('prompt_template') || '';
+        }
+
+        // ===== 抓取 =====
+        async function startScrape() {
+            const keyword = document.getElementById('scrape-keyword').value.trim();
+            if (!keyword) { alert('请输入关键词'); return; }
+
+            const platforms = [];
+            if (document.getElementById('plat-amazon').checked) platforms.push('amazon');
+            if (document.getElementById('plat-tiktok').checked) platforms.push('tiktok');
+            if (!platforms.length) { alert('请至少选择一个平台'); return; }
+
+            const rules = {
+                max_items: parseInt(document.getElementById('rule-max-items').value) || 10,
+                min_rating: parseFloat(document.getElementById('rule-min-rating').value) || 0,
+                min_reviews: parseInt(document.getElementById('rule-min-reviews').value) || 0,
+                fetch_detail: document.getElementById('rule-fetch-detail').checked,
+                fetch_image: document.getElementById('rule-fetch-image').checked,
+                prime_only: document.getElementById('rule-prime-only').checked,
+                sort_by: document.getElementById('rule-sort-by').value,
+            };
+
+            const btn = document.getElementById('btn-scrape');
+            btn.disabled = true;
+            btn.textContent = '抓取中...';
+            setStatus('scrape-status', 'running', '<span class="progress-dot"></span>正在启动浏览器...');
+
+            try {
+                const res = await post('/api/scrape', { keyword, platforms, rules });
+                if (!res.ok) throw new Error(res.error);
+                pollJob(res.data.job_id);
+            } catch (e) {
+                setStatus('scrape-status', 'error', '启动失败: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = '▶ 开始抓取';
+            }
+        }
+
+        function pollJob(jobId) {
+            clearInterval(pollTimer);
+            pollTimer = setInterval(async () => {
+                try {
+                    const res = await get('/api/job/' + jobId);
+                    if (!res.ok) return;
+                    const job = res.data;
+
+                    if (job.status === 'running') {
+                        setStatus('scrape-status', 'running', '<span class="progress-dot"></span>' + (job.progress || '抓取中...'));
+                    } else if (job.status === 'done') {
+                        clearInterval(pollTimer);
+                        currentProducts = job.products || [];
+                        selectedIds.clear();
+                        const savedTip = job.saved_file ? `，已自动保存至 <code style="color:#7c8cf8">${job.saved_file}</code>` : '';
+                        setStatus('scrape-status', 'done', `✅ 抓取完成，共 ${currentProducts.length} 个商品${savedTip}`);
+                        document.getElementById('btn-scrape').disabled = false;
+                        document.getElementById('btn-scrape').textContent = '▶ 开始抓取';
+                        renderProducts();
+                        // 自动跳转到商品列表
+                        setTimeout(() => {
+                            document.querySelectorAll('.nav-item')[1].click();
+                        }, 800);
+                    } else if (job.status === 'error') {
+                        clearInterval(pollTimer);
+                        setStatus('scrape-status', 'error', '❌ ' + (job.error || '抓取失败'));
+                        document.getElementById('btn-scrape').disabled = false;
+                        document.getElementById('btn-scrape').textContent = '▶ 开始抓取';
+                    }
+                } catch (e) { }
+            }, 1500);
+        }
+
+        // ===== 商品列表渲染 =====
+        function renderProducts(products) {
+            if (products) currentProducts = products;
+            const container = document.getElementById('product-list');
+            const bar = document.getElementById('select-bar');
+
+            if (!currentProducts || !currentProducts.length) {
+                container.innerHTML = '<div class="empty"><div class="icon">📭</div><div>暂无商品，请先抓取或加载文件</div></div>';
+                bar.style.display = 'none';
+                return;
+            }
+
+            bar.style.display = 'flex';
+            container.innerHTML = '<div class="product-grid">' +
+                currentProducts.map((p, i) => `
+      <div class="product-card ${selectedIds.has(i) ? 'selected' : ''}" id="pcard-${i}" onclick="toggleSelect(${i})">
+        <input type="checkbox" class="check" ${selectedIds.has(i) ? 'checked' : ''} onclick="event.stopPropagation();toggleSelect(${i})">
+        <span class="product-badge ${p.source === 'Amazon' ? 'badge-amazon' : 'badge-tiktok'}">${p.source}</span>
+        ${p.image_url ? `<img src="${escHtml(p.image_url)}" style="width:100%;height:140px;object-fit:contain;border-radius:4px;margin-bottom:8px;background:#0a0c14">` : ''}
+        <div class="product-title">${escHtml(p.title || '(无标题)')}</div>
+        <div class="product-meta">
+          ${p.price ? `<span>💰 ${escHtml(p.price)}</span>` : ''}
+          ${p.review_score > 0 ? `<span>⭐ ${p.review_score}</span>` : (p.rating ? `<span>⭐ ${escHtml(p.rating.replace(' out of 5 stars', ''))}</span>` : '')}
+          ${p.review_count ? `<span>💬 ${escHtml(p.review_count)}</span>` : ''}
+          ${p.is_prime ? `<span style="color:#00a8e1">✦ Prime</span>` : ''}
+          ${p.brand ? `<span style="color:#94a3b8">🏷 ${escHtml(p.brand)}</span>` : ''}
+        </div>
+        <div style="margin-top:8px">
+          <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showDetail(${i})">查看详情</button>
+        </div>
+      </div>
+    `).join('') + '</div>';
+
+            updateSelectCount();
+        }
+
+        function toggleSelect(i) {
+            if (selectedIds.has(i)) selectedIds.delete(i);
+            else selectedIds.add(i);
+            const card = document.getElementById('pcard-' + i);
+            card.classList.toggle('selected', selectedIds.has(i));
+            card.querySelector('.check').checked = selectedIds.has(i);
+            updateSelectCount();
+        }
+
+        function updateSelectCount() {
+            document.getElementById('selected-count').textContent = selectedIds.size;
+        }
+
+        function selectAll() {
+            currentProducts.forEach((_, i) => selectedIds.add(i));
+            renderProducts();
+        }
+
+        function clearSelect() {
+            selectedIds.clear();
+            renderProducts();
+        }
+
+        // ===== 保存选中 =====
+        async function saveSelected() {
+            const items = [...selectedIds].map(i => currentProducts[i]);
+            if (!items.length) { alert('请先勾选商品'); return; }
+            const keyword = document.getElementById('scrape-keyword').value.trim() || 'scrape';
+            const filename = `${keyword.replace(/\s+/g, '_')}_${Date.now()}.json`;
+            try {
+                const res = await post('/api/save', { filename, products: items });
+                if (!res.ok) throw new Error(res.error);
+                alert(`✅ 已保存 ${items.length} 个商品到 ${res.data.path}`);
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+
+        // ===== 发送到分析页 =====
+        function sendToAnalyze() {
+            const items = selectedIds.size > 0
+                ? [...selectedIds].map(i => currentProducts[i])
+                : currentProducts;
+            if (!items.length) { alert('没有可分析的商品'); return; }
+            analyzeProducts = items;
+            syncSettingsToAnalyze();
+            const kw = document.getElementById('scrape-keyword').value.trim();
+            document.getElementById('analyze-keyword').value = kw;
+            document.getElementById('analyze-products-info').innerHTML =
+                `已选 <strong style="color:#7c8cf8">${items.length}</strong> 个商品待分析`;
+            document.querySelectorAll('.nav-item')[3].click();
+        }
+
+        // ===== 商品详情弹窗 =====
+        function showDetail(i) {
+            const p = currentProducts[i];
+            document.getElementById('modal-title').textContent = p.title || '(无标题)';
+            document.getElementById('modal-body').innerHTML = `
+    <div class="detail-row"><span class="detail-label">平台</span>
+      <span class="detail-value"><span class="product-badge ${p.source === 'Amazon' ? 'badge-amazon' : 'badge-tiktok'}">${p.source}</span></span></div>
+    ${p.image_url ? `<img src="${escHtml(p.image_url)}" style="width:100%;max-height:200px;object-fit:contain;border-radius:6px;margin-bottom:12px;background:#0a0c14">` : ''}
+    ${p.price ? `<div class="detail-row"><span class="detail-label">价格</span><span class="detail-value">${escHtml(p.price)}</span></div>` : ''}
+    ${p.rating ? `<div class="detail-row"><span class="detail-label">评分</span><span class="detail-value">⭐ ${escHtml(p.rating)}</span></div>` : ''}
+    ${p.review_count ? `<div class="detail-row"><span class="detail-label">评论</span><span class="detail-value">${escHtml(p.review_count)}</span></div>` : ''}
+    ${p.brand ? `<div class="detail-row"><span class="detail-label">品牌</span><span class="detail-value">${escHtml(p.brand)}</span></div>` : ''}
+    ${p.asin ? `<div class="detail-row"><span class="detail-label">ASIN</span><span class="detail-value" style="font-family:monospace;color:#7c8cf8">${escHtml(p.asin)}</span></div>` : ''}
+    ${p.is_prime ? `<div class="detail-row"><span class="detail-label">Prime</span><span class="detail-value" style="color:#00a8e1">✦ 是</span></div>` : ''}
+    ${p.url ? `<div class="detail-row"><span class="detail-label">链接</span><span class="detail-value"><a href="${escHtml(p.url)}" target="_blank" style="color:#7c8cf8">打开商品页面 ↗</a></span></div>` : ''}
+    ${p.description ? `<div class="detail-desc">${escHtml(p.description)}</div>` : ''}
+  `;
+            document.getElementById('modal-overlay').classList.add('show');
+        }
+
+        function closeModal(e) {
+            if (!e || e.target === document.getElementById('modal-overlay') || e.type === 'click') {
+                document.getElementById('modal-overlay').classList.remove('show');
+            }
+        }
+
+        // ===== 本地文件 =====
+        let selectedFiles = new Set(); // 选中的文件名
+
+        async function loadFiles() {
+            const container = document.getElementById('file-list');
+            selectedFiles.clear();
+            updateFileSelectBar();
+            container.innerHTML = '<div style="color:#64748b;font-size:13px">加载中...</div>';
+            try {
+                const res = await get('/api/files');
+                if (!res.ok) throw new Error(res.error);
+                const files = res.data || [];
+                if (!files.length) {
+                    container.innerHTML = '<div class="empty"><div class="icon">📂</div><div>暂无文件</div></div>';
+                    return;
+                }
+                container.innerHTML = '<div class="file-list">' + files.map(f => `
+                  <div class="file-item" id="fitem-${escHtml(f.name)}" onclick="toggleFileSelect('${escHtml(f.name)}')" style="cursor:pointer">
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <input type="checkbox" class="fcheck" id="fcheck-${escHtml(f.name)}" style="width:14px;height:14px;accent-color:#7c8cf8;flex-shrink:0" onclick="event.stopPropagation();toggleFileSelect('${escHtml(f.name)}')">
+                      <div>
+                        <div class="file-name">📄 ${escHtml(f.name)}</div>
+                        <div class="file-meta">${f.modified} · ${(f.size / 1024).toFixed(1)} KB</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+                      <button class="btn btn-sm btn-secondary" onclick="loadFileProducts('${escHtml(f.name)}')">加载到列表</button>
+                    </div>
+                  </div>
+                `).join('') + '</div>';
+            } catch (e) {
+                container.innerHTML = `<div style="color:#f87171;font-size:13px">加载失败: ${e.message}</div>`;
+            }
+        }
+
+        function toggleFileSelect(name) {
+            if (selectedFiles.has(name)) selectedFiles.delete(name);
+            else selectedFiles.add(name);
+            const el = document.getElementById('fitem-' + name);
+            const cb = document.getElementById('fcheck-' + name);
+            if (el) el.style.borderColor = selectedFiles.has(name) ? '#7c8cf8' : '';
+            if (cb) cb.checked = selectedFiles.has(name);
+            updateFileSelectBar();
+        }
+
+        function selectAllFiles() {
+            document.querySelectorAll('.fcheck').forEach(cb => {
+                const name = cb.id.replace('fcheck-', '');
+                selectedFiles.add(name);
+                cb.checked = true;
+                const el = document.getElementById('fitem-' + name);
+                if (el) el.style.borderColor = '#7c8cf8';
+            });
+            updateFileSelectBar();
+        }
+
+        function clearFileSelect() {
+            selectedFiles.clear();
+            document.querySelectorAll('.fcheck').forEach(cb => {
+                cb.checked = false;
+                const name = cb.id.replace('fcheck-', '');
+                const el = document.getElementById('fitem-' + name);
+                if (el) el.style.borderColor = '';
+            });
+            updateFileSelectBar();
+        }
+
+        function updateFileSelectBar() {
+            const bar = document.getElementById('file-select-bar');
+            document.getElementById('file-selected-count').textContent = selectedFiles.size;
+            bar.style.display = selectedFiles.size > 0 ? 'flex' : 'none';
+        }
+
+        function showMergeDialog() {
+            if (selectedFiles.size < 2) { alert('请至少选择 2 个文件进行合并'); return; }
+            const names = [...selectedFiles];
+            document.getElementById('merge-file-list').innerHTML =
+                '将合并以下文件：<br>' + names.map(n => `<span style="color:#7c8cf8">· ${escHtml(n)}</span>`).join('<br>');
+            document.getElementById('merge-output').value = `merged_${Date.now()}.json`;
+            document.getElementById('merge-status').className = 'status-bar';
+            document.getElementById('merge-modal').classList.add('show');
+        }
+
+        function closeMergeModal(e) {
+            if (!e || e.target === document.getElementById('merge-modal')) {
+                document.getElementById('merge-modal').classList.remove('show');
+            }
+        }
+
+        async function doMerge() {
+            const files = [...selectedFiles];
+            const output = document.getElementById('merge-output').value.trim() || `merged_${Date.now()}.json`;
+            const dedupe = document.getElementById('merge-dedupe').checked;
+            try {
+                const res = await post('/api/merge', { files, output, dedupe });
+                if (!res.ok) throw new Error(res.error);
+                setStatus('merge-status', 'done', `✅ 合并完成，共 ${res.data.count} 个商品，已保存为 ${res.data.filename}`);
+                setTimeout(() => { closeMergeModal(); loadFiles(); }, 1500);
+            } catch (e) {
+                setStatus('merge-status', 'error', '❌ ' + e.message);
+            }
+        }
+
+        async function loadFileProducts(filename) {
+            try {
+                const res = await get('/api/load?file=' + encodeURIComponent(filename));
+                if (!res.ok) throw new Error(res.error);
+                currentProducts = res.data || [];
+                selectedIds.clear();
+                renderProducts();
+                alert(`✅ 已加载 ${currentProducts.length} 个商品`);
+                document.querySelectorAll('.nav-item')[1].click();
+            } catch (e) {
+                alert('加载失败: ' + e.message);
+            }
+        }
+
+        // ===== AI 分析 =====
+        async function runAnalyze() {
+            if (!analyzeProducts.length) { alert('请先在商品列表中选择商品并点击「发送分析」'); return; }
+            const apiKey = document.getElementById('ai-apikey').value.trim();
+            if (!apiKey) { alert('请输入 API Key'); return; }
+
+            const btn = document.getElementById('btn-analyze');
+            btn.disabled = true;
+            btn.textContent = '分析中...';
+            setStatus('analyze-status', 'running', '<span class="progress-dot"></span>正在调用 AI...');
+            document.getElementById('report-container').style.display = 'none';
+
+            try {
+                const res = await post('/api/analyze', {
+                    products: analyzeProducts,
+                    prompt_template: document.getElementById('prompt-template').value,
+                    api_key: apiKey,
+                    provider: document.getElementById('ai-provider').value,
+                    keyword: document.getElementById('analyze-keyword').value,
+                });
+                if (!res.ok) throw new Error(res.error);
+                reportRaw = res.data;
+                renderReport(res.data);
+                setStatus('analyze-status', 'done', '✅ 分析完成');
+            } catch (e) {
+                setStatus('analyze-status', 'error', '❌ ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 开始分析';
+            }
+        }
+
+        function renderReport(r) {
+            const container = document.getElementById('report-content');
+            container.innerHTML = `
+    <div class="report-section">
+      <h3>市场概况</h3>
+      <p>${escHtml(r.market_overview || '')}</p>
+    </div>
+    ${r.top_products && r.top_products.length ? `
+    <div class="report-section">
+      <h3>推荐商品 TOP ${r.top_products.length}</h3>
+      ${r.top_products.map((p, i) => `
+        <div class="rank-item">
+          <div class="rank-num">${i + 1}</div>
+          <div class="rank-info">
+            <div class="rank-title">${escHtml(p.title || '')}</div>
+            <div class="rank-reason">${escHtml(p.reason || '')}</div>
+          </div>
+          <div class="rank-score">${p.score}分</div>
+        </div>
+      `).join('')}
+    </div>` : ''}
+    ${r.opportunities && r.opportunities.length ? `
+    <div class="report-section">
+      <h3>市场机会</h3>
+      <div class="tag-list">${r.opportunities.map(o => `<span class="tag tag-green">✓ ${escHtml(o)}</span>`).join('')}</div>
+    </div>` : ''}
+    ${r.risks && r.risks.length ? `
+    <div class="report-section">
+      <h3>风险提示</h3>
+      <div class="tag-list">${r.risks.map(o => `<span class="tag tag-red">⚠ ${escHtml(o)}</span>`).join('')}</div>
+    </div>` : ''}
+    ${r.recommendation ? `
+    <div class="report-section">
+      <h3>综合建议</h3>
+      <p>${escHtml(r.recommendation)}</p>
+    </div>` : ''}
+  `;
+            document.getElementById('report-container').style.display = 'block';
+        }
+
+        function copyReport() {
+            if (!reportRaw) return;
+            navigator.clipboard.writeText(JSON.stringify(reportRaw, null, 2))
+                .then(() => alert('✅ 已复制到剪贴板'));
+        }
+
+        // ===== 工具函数 =====
+        function setStatus(id, type, msg) {
+            const el = document.getElementById(id);
+            el.className = 'status-bar show status-' + type;
+            el.innerHTML = msg;
+        }
+
+        function escHtml(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        async function post(url, body) {
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return r.json();
+        }
+
+        async function get(url) {
+            const r = await fetch(url);
+            return r.json();
+        }
+
+        // ===== 初始化 =====
+        loadSettings();
+        syncSettingsToAnalyze();
+    </script>
+</body>
+
+</html>
