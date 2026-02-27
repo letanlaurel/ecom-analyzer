@@ -93,6 +93,9 @@ func ScrapeWithPlatforms(keyword string, platforms []string, progress func(strin
 		{"etsy", "Etsy", scrapeEtsy},
 		{"walmart", "Walmart", scrapeWalmart},
 		{"aliexpress", "AliExpress", scrapeAliExpress},
+		{"taobao", "淘宝", scrapeTaobao},
+		{"jd", "京东", scrapeJD},
+		{"pinduoduo", "拼多多", scrapePinduoduo},
 	}
 
 	for _, s := range allSources {

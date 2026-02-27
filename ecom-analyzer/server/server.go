@@ -13,6 +13,7 @@ import (
 
 	"ecom-analyzer/ai"
 	"ecom-analyzer/scraper"
+	"ecom-analyzer/tiktok"
 )
 
 // ScrapeJob 一次抓取任务的状态
@@ -48,6 +49,7 @@ func Run(addr string) {
 	mux.HandleFunc("/api/files", handleListFiles)
 	mux.HandleFunc("/api/load", handleLoadFile)
 	mux.HandleFunc("/api/merge", handleMergeFiles)
+	mux.HandleFunc("/api/tiktok/monitor", handleTikTokMonitor)
 
 	log.Printf("🌐 Web 界面已启动: http://%s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
@@ -56,6 +58,11 @@ func Run(addr string) {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
+	// 只处理根路径，其他未匹配路径返回 404
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
 	// 读取同目录下的 index.html
 	dir := filepath.Dir(os.Args[0])
 	// 开发时从源码目录读
@@ -80,12 +87,19 @@ func handleScrape(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Keyword    string              `json:"keyword"`
-		Platforms  []string            `json:"platforms"`
-		Rules      scraper.ScrapeRules `json:"rules"`
-		EbayAppID  string              `json:"ebay_app_id"`
-		EbayCertID string              `json:"ebay_cert_id"`
-		EtsyAPIKey string              `json:"etsy_api_key"`
+		Keyword          string              `json:"keyword"`
+		Platforms        []string            `json:"platforms"`
+		Rules            scraper.ScrapeRules `json:"rules"`
+		EbayAppID        string              `json:"ebay_app_id"`
+		EbayCertID       string              `json:"ebay_cert_id"`
+		EtsyAPIKey       string              `json:"etsy_api_key"`
+		TaobaoAppKey     string              `json:"taobao_app_key"`
+		TaobaoAppSecret  string              `json:"taobao_app_secret"`
+		TaobaoSessionKey string              `json:"taobao_session_key"`
+		JDAppKey         string              `json:"jd_app_key"`
+		JDAppSecret      string              `json:"jd_app_secret"`
+		PDDClientID      string              `json:"pdd_client_id"`
+		PDDClientSecret  string              `json:"pdd_client_secret"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Keyword == "" {
 		jsonErr(w, "参数错误: keyword 必填", 400)
@@ -95,16 +109,17 @@ func handleScrape(w http.ResponseWriter, r *http.Request) {
 	if req.Rules.MaxItems <= 0 {
 		req.Rules.MaxItems = 10
 	}
-	// 临时设置第三方平台 Key（仅本次请求生效，goroutine 内读取）
-	if req.EbayAppID != "" {
-		os.Setenv("EBAY_APP_ID", req.EbayAppID)
-	}
-	if req.EbayCertID != "" {
-		os.Setenv("EBAY_CERT_ID", req.EbayCertID)
-	}
-	if req.EtsyAPIKey != "" {
-		os.Setenv("ETSY_API_KEY", req.EtsyAPIKey)
-	}
+	// 临时设置第三方平台 Key
+	if req.EbayAppID != "" { os.Setenv("EBAY_APP_ID", req.EbayAppID) }
+	if req.EbayCertID != "" { os.Setenv("EBAY_CERT_ID", req.EbayCertID) }
+	if req.EtsyAPIKey != "" { os.Setenv("ETSY_API_KEY", req.EtsyAPIKey) }
+	if req.TaobaoAppKey != "" { os.Setenv("TAOBAO_APP_KEY", req.TaobaoAppKey) }
+	if req.TaobaoAppSecret != "" { os.Setenv("TAOBAO_APP_SECRET", req.TaobaoAppSecret) }
+	if req.TaobaoSessionKey != "" { os.Setenv("TAOBAO_SESSION_KEY", req.TaobaoSessionKey) }
+	if req.JDAppKey != "" { os.Setenv("JD_APP_KEY", req.JDAppKey) }
+	if req.JDAppSecret != "" { os.Setenv("JD_APP_SECRET", req.JDAppSecret) }
+	if req.PDDClientID != "" { os.Setenv("PDD_CLIENT_ID", req.PDDClientID) }
+	if req.PDDClientSecret != "" { os.Setenv("PDD_CLIENT_SECRET", req.PDDClientSecret) }
 
 	jobID := fmt.Sprintf("job_%d", time.Now().UnixMilli())
 	job := &ScrapeJob{
@@ -370,4 +385,94 @@ func jsonErr(w http.ResponseWriter, msg string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]any{"ok": false, "error": msg})
+}
+
+// TikTokMonitorJob 一次 TikTok 监控任务的状态
+type TikTokMonitorJob struct {
+	ID        string         `json:"id"`
+	Hashtags  []string       `json:"hashtags"`
+	Status    string         `json:"status"` // pending | running | done | error
+	Progress  string         `json:"progress"`
+	Videos    []tiktok.Video `json:"videos,omitempty"`
+	Error     string         `json:"error,omitempty"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
+var (
+	tkJobs   = map[string]*TikTokMonitorJob{}
+	tkJobsMu sync.RWMutex
+)
+
+// POST /api/tiktok/monitor  body: {hashtags:["#PetHealth"], workers:2, min_score:0.03}
+func handleTikTokMonitor(w http.ResponseWriter, r *http.Request) {
+	// GET 用于轮询任务状态
+	if r.Method == http.MethodGet {
+		id := r.URL.Query().Get("job_id")
+		tkJobsMu.RLock()
+		job, ok := tkJobs[id]
+		tkJobsMu.RUnlock()
+		if !ok {
+			jsonErr(w, "job not found", 404)
+			return
+		}
+		jsonOK(w, job)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
+
+	var req struct {
+		Hashtags []string `json:"hashtags"`
+		Workers  int      `json:"workers"`
+		MinScore float64  `json:"min_score"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.Hashtags) == 0 {
+		jsonErr(w, "参数错误: hashtags 必填", 400)
+		return
+	}
+	if req.Workers <= 0 {
+		req.Workers = 2
+	}
+
+	jobID := fmt.Sprintf("tkjob_%d", time.Now().UnixMilli())
+	job := &TikTokMonitorJob{
+		ID:        jobID,
+		Hashtags:  req.Hashtags,
+		Status:    "pending",
+		CreatedAt: time.Now(),
+	}
+	tkJobsMu.Lock()
+	tkJobs[jobID] = job
+	tkJobsMu.Unlock()
+
+	go func() {
+		tkJobsMu.Lock()
+		job.Status = "running"
+		job.Progress = "正在启动浏览器..."
+		tkJobsMu.Unlock()
+
+		monitor := tiktok.NewMonitor(
+			req.Hashtags,
+			tiktok.WithWorkerCount(req.Workers),
+			tiktok.WithMinScore(req.MinScore),
+		)
+		videos, err := monitor.Run()
+
+		tkJobsMu.Lock()
+		defer tkJobsMu.Unlock()
+		if err != nil {
+			job.Status = "error"
+			job.Error = err.Error()
+			return
+		}
+		job.Status = "done"
+		job.Videos = videos
+		job.Progress = fmt.Sprintf("完成，共 %d 条视频", len(videos))
+		log.Printf("[tiktok] 监控完成: %d 条视频", len(videos))
+	}()
+
+	jsonOK(w, map[string]string{"job_id": jobID})
 }

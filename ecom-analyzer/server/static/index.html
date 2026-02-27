@@ -337,6 +337,41 @@
             color: #fff
         }
 
+        .badge-ebay {
+            background: #e53238;
+            color: #fff
+        }
+
+        .badge-walmart {
+            background: #0071ce;
+            color: #fff
+        }
+
+        .badge-etsy {
+            background: #f56400;
+            color: #fff
+        }
+
+        .badge-aliexpress {
+            background: #ff6a00;
+            color: #fff
+        }
+
+        .badge-taobao {
+            background: #ff4400;
+            color: #fff
+        }
+
+        .badge-jd {
+            background: #cc0000;
+            color: #fff
+        }
+
+        .badge-pinduoduo {
+            background: #e02e24;
+            color: #fff
+        }
+
         .product-title {
             font-size: 13px;
             font-weight: 500;
@@ -652,6 +687,9 @@
                 <div class="nav-item" onclick="showPage('settings')">
                     <span class="icon">⚙️</span>设置
                 </div>
+                <div class="nav-item" onclick="showPage('tiktok')">
+                    <span class="icon">🎵</span>TikTok 趋势
+                </div>
             </nav>
         </div>
 
@@ -673,6 +711,9 @@
                         <label><input type="checkbox" id="plat-etsy"> Etsy</label>
                         <label><input type="checkbox" id="plat-aliexpress"> AliExpress</label>
                         <label><input type="checkbox" id="plat-tiktok"> TikTok Shop</label>
+                        <label><input type="checkbox" id="plat-taobao"> 淘宝</label>
+                        <label><input type="checkbox" id="plat-jd"> 京东</label>
+                        <label><input type="checkbox" id="plat-pinduoduo"> 拼多多</label>
                     </div>
                 </div>
                 <div class="card">
@@ -845,6 +886,31 @@
                             v3，留空则用浏览器抓取）</span></label>
                     <input type="text" id="setting-etsy-api-key" placeholder="例如: xxxxxxxxxxxxxxxxxxxxxxxx"
                         oninput="saveSettings()">
+                    <hr class="divider">
+                    <label>淘宝 App Key <span style="color:#64748b;font-weight:400">（<a href="https://open.taobao.com/"
+                                target="_blank" style="color:#7c8cf8">淘宝开放平台</a> → 淘宝客 API）</span></label>
+                    <input type="text" id="setting-taobao-app-key" placeholder="淘宝开放平台 App Key"
+                        oninput="saveSettings()">
+                    <label>淘宝 App Secret</label>
+                    <input type="password" id="setting-taobao-app-secret" placeholder="淘宝开放平台 App Secret"
+                        oninput="saveSettings()">
+                    <label>淘宝 Session Key <span style="color:#64748b;font-weight:400">（可选，淘宝客授权后获取）</span></label>
+                    <input type="password" id="setting-taobao-session-key" placeholder="可选" oninput="saveSettings()">
+                    <hr class="divider">
+                    <label>京东 App Key <span style="color:#64748b;font-weight:400">（<a href="https://union.jd.com/"
+                                target="_blank" style="color:#7c8cf8">京东联盟</a> → 工具 → API）</span></label>
+                    <input type="text" id="setting-jd-app-key" placeholder="京东联盟 App Key" oninput="saveSettings()">
+                    <label>京东 App Secret</label>
+                    <input type="password" id="setting-jd-app-secret" placeholder="京东联盟 App Secret"
+                        oninput="saveSettings()">
+                    <hr class="divider">
+                    <label>拼多多 Client ID <span style="color:#64748b;font-weight:400">（<a
+                                href="https://open.pinduoduo.com/" target="_blank" style="color:#7c8cf8">拼多多开放平台</a> →
+                            多多客）</span></label>
+                    <input type="text" id="setting-pdd-client-id" placeholder="拼多多 Client ID" oninput="saveSettings()">
+                    <label>拼多多 Client Secret</label>
+                    <input type="password" id="setting-pdd-client-secret" placeholder="拼多多 Client Secret"
+                        oninput="saveSettings()">
                 </div>
                 <div class="card">
                     <div class="card-title">默认 AI 配置</div>
@@ -871,6 +937,60 @@
                         占位符：<code style="color:#7c8cf8">{{keyword}}</code> 关键词，<code
                             style="color:#7c8cf8">{{products}}</code> 商品数据
                     </div>
+                </div>
+            </div>
+
+            <!-- TikTok 趋势监控页 -->
+            <div class="page" id="page-tiktok">
+                <div class="page-title">🎵 TikTok 趋势监控</div>
+                <div class="card">
+                    <div class="card-title">监控配置</div>
+                    <label>监控标签 <span style="color:#64748b;font-weight:400">（逗号分隔，如
+                            #PetHealth,#DogAnxiety）</span></label>
+                    <input type="text" id="tk-hashtags" value="#PetHealth,#DogAnxiety"
+                        placeholder="#PetHealth,#DogAnxiety">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px">
+                        <div>
+                            <label>并发爬虫数 <span style="color:#64748b;font-weight:400">（建议 2~3）</span></label>
+                            <input type="text" id="tk-workers" value="2" placeholder="2">
+                        </div>
+                        <div>
+                            <label>GrowthScore 最低阈值 <span style="color:#64748b;font-weight:400">（0 = 不过滤）</span></label>
+                            <input type="text" id="tk-min-score" value="0" placeholder="例如: 0.03">
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" id="btn-tk-monitor" onclick="startTikTokMonitor()">▶
+                            开始监控</button>
+                    </div>
+                    <div class="status-bar" id="tk-status"></div>
+                </div>
+
+                <!-- 结果区 -->
+                <div id="tk-result-area" style="display:none">
+                    <div class="card" style="padding:14px 20px">
+                        <div
+                            style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                            <span style="font-size:13px;color:#94a3b8">共 <strong id="tk-total"
+                                    style="color:#7c8cf8">0</strong> 条视频，按 GrowthScore 降序排列</span>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <label style="margin:0;font-size:12px;color:#64748b">筛选标签</label>
+                                <select id="tk-filter-tag" onchange="renderTikTokVideos()"
+                                    style="width:160px;padding:5px 8px;font-size:12px">
+                                    <option value="">全部</option>
+                                </select>
+                                <label style="margin:0;font-size:12px;color:#64748b">排序</label>
+                                <select id="tk-sort" onchange="renderTikTokVideos()"
+                                    style="width:140px;padding:5px 8px;font-size:12px">
+                                    <option value="score">GrowthScore ↓</option>
+                                    <option value="play">播放量 ↓</option>
+                                    <option value="like">点赞数 ↓</option>
+                                    <option value="time">发布时间 ↓</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="tk-video-grid" class="product-grid" style="margin-top:0"></div>
                 </div>
             </div>
 
@@ -975,6 +1095,13 @@
             localStorage.setItem('ebay_app_id', document.getElementById('setting-ebay-app-id').value);
             localStorage.setItem('ebay_cert_id', document.getElementById('setting-ebay-cert-id').value);
             localStorage.setItem('etsy_api_key', document.getElementById('setting-etsy-api-key').value);
+            localStorage.setItem('taobao_app_key', document.getElementById('setting-taobao-app-key').value);
+            localStorage.setItem('taobao_app_secret', document.getElementById('setting-taobao-app-secret').value);
+            localStorage.setItem('taobao_session_key', document.getElementById('setting-taobao-session-key').value);
+            localStorage.setItem('jd_app_key', document.getElementById('setting-jd-app-key').value);
+            localStorage.setItem('jd_app_secret', document.getElementById('setting-jd-app-secret').value);
+            localStorage.setItem('pdd_client_id', document.getElementById('setting-pdd-client-id').value);
+            localStorage.setItem('pdd_client_secret', document.getElementById('setting-pdd-client-secret').value);
         }
         function loadSettings() {
             const p = localStorage.getItem('ai_provider') || 'gemini';
@@ -988,6 +1115,13 @@
             document.getElementById('setting-ebay-app-id').value = localStorage.getItem('ebay_app_id') || '';
             document.getElementById('setting-ebay-cert-id').value = localStorage.getItem('ebay_cert_id') || '';
             document.getElementById('setting-etsy-api-key').value = localStorage.getItem('etsy_api_key') || '';
+            document.getElementById('setting-taobao-app-key').value = localStorage.getItem('taobao_app_key') || '';
+            document.getElementById('setting-taobao-app-secret').value = localStorage.getItem('taobao_app_secret') || '';
+            document.getElementById('setting-taobao-session-key').value = localStorage.getItem('taobao_session_key') || '';
+            document.getElementById('setting-jd-app-key').value = localStorage.getItem('jd_app_key') || '';
+            document.getElementById('setting-jd-app-secret').value = localStorage.getItem('jd_app_secret') || '';
+            document.getElementById('setting-pdd-client-id').value = localStorage.getItem('pdd_client_id') || '';
+            document.getElementById('setting-pdd-client-secret').value = localStorage.getItem('pdd_client_secret') || '';
             onProviderChange('setting');
         }
         // 初始化时同步到分析页
@@ -1011,6 +1145,9 @@
             if (document.getElementById('plat-etsy').checked) platforms.push('etsy');
             if (document.getElementById('plat-aliexpress').checked) platforms.push('aliexpress');
             if (document.getElementById('plat-tiktok').checked) platforms.push('tiktok');
+            if (document.getElementById('plat-taobao').checked) platforms.push('taobao');
+            if (document.getElementById('plat-jd').checked) platforms.push('jd');
+            if (document.getElementById('plat-pinduoduo').checked) platforms.push('pinduoduo');
             if (!platforms.length) { alert('请至少选择一个平台'); return; }
 
             const rules = {
@@ -1031,9 +1168,22 @@
             const ebayAppId = localStorage.getItem('ebay_app_id') || '';
             const ebayCertId = localStorage.getItem('ebay_cert_id') || '';
             const etsyApiKey = localStorage.getItem('etsy_api_key') || '';
+            const taobaoAppKey = localStorage.getItem('taobao_app_key') || '';
+            const taobaoAppSecret = localStorage.getItem('taobao_app_secret') || '';
+            const taobaoSessionKey = localStorage.getItem('taobao_session_key') || '';
+            const jdAppKey = localStorage.getItem('jd_app_key') || '';
+            const jdAppSecret = localStorage.getItem('jd_app_secret') || '';
+            const pddClientId = localStorage.getItem('pdd_client_id') || '';
+            const pddClientSecret = localStorage.getItem('pdd_client_secret') || '';
 
             try {
-                const res = await post('/api/scrape', { keyword, platforms, rules, ebay_app_id: ebayAppId, ebay_cert_id: ebayCertId, etsy_api_key: etsyApiKey });
+                const res = await post('/api/scrape', {
+                    keyword, platforms, rules,
+                    ebay_app_id: ebayAppId, ebay_cert_id: ebayCertId, etsy_api_key: etsyApiKey,
+                    taobao_app_key: taobaoAppKey, taobao_app_secret: taobaoAppSecret, taobao_session_key: taobaoSessionKey,
+                    jd_app_key: jdAppKey, jd_app_secret: jdAppSecret,
+                    pdd_client_id: pddClientId, pdd_client_secret: pddClientSecret,
+                });
                 if (!res.ok) throw new Error(res.error);
                 pollJob(res.data.job_id);
             } catch (e) {
@@ -1093,7 +1243,7 @@
                 currentProducts.map((p, i) => `
       <div class="product-card ${selectedIds.has(i) ? 'selected' : ''}" id="pcard-${i}" onclick="toggleSelect(${i})">
         <input type="checkbox" class="check" ${selectedIds.has(i) ? 'checked' : ''} onclick="event.stopPropagation();toggleSelect(${i})">
-        <span class="product-badge ${p.source === 'Amazon' ? 'badge-amazon' : 'badge-tiktok'}">${p.source}</span>
+        <span class="product-badge ${getBadgeClass(p.source)}">${p.source}</span>
         ${p.image_url ? `<img src="${escHtml(p.image_url)}" style="width:100%;height:140px;object-fit:contain;border-radius:4px;margin-bottom:8px;background:#0a0c14">` : ''}
         <div class="product-title">${escHtml(p.title || '(无标题)')}</div>
         <div class="product-meta">
@@ -1171,7 +1321,7 @@
             document.getElementById('modal-title').textContent = p.title || '(无标题)';
             document.getElementById('modal-body').innerHTML = `
     <div class="detail-row"><span class="detail-label">平台</span>
-      <span class="detail-value"><span class="product-badge ${p.source === 'Amazon' ? 'badge-amazon' : 'badge-tiktok'}">${p.source}</span></span></div>
+      <span class="detail-value"><span class="product-badge ${getBadgeClass(p.source)}">${p.source}</span></span></div>
     ${p.image_url ? `<img src="${escHtml(p.image_url)}" style="width:100%;max-height:200px;object-fit:contain;border-radius:6px;margin-bottom:12px;background:#0a0c14">` : ''}
     ${p.price ? `<div class="detail-row"><span class="detail-label">价格</span><span class="detail-value">${escHtml(p.price)}</span></div>` : ''}
     ${p.rating ? `<div class="detail-row"><span class="detail-label">评分</span><span class="detail-value">⭐ ${escHtml(p.rating)}</span></div>` : ''}
@@ -1421,6 +1571,16 @@
             return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        function getBadgeClass(source) {
+            const map = {
+                'Amazon': 'badge-amazon', 'TikTokShop': 'badge-tiktok',
+                'eBay': 'badge-ebay', 'Walmart': 'badge-walmart',
+                'Etsy': 'badge-etsy', 'AliExpress': 'badge-aliexpress',
+                '淘宝': 'badge-taobao', '京东': 'badge-jd', '拼多多': 'badge-pinduoduo',
+            };
+            return map[source] || 'badge-tiktok';
+        }
+
         async function post(url, body) {
             const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             return r.json();
@@ -1429,6 +1589,134 @@
         async function get(url) {
             const r = await fetch(url);
             return r.json();
+        }
+
+        // ===== TikTok 趋势监控 =====
+        let tkVideos = [];
+        let tkPollTimer = null;
+
+        async function startTikTokMonitor() {
+            const raw = document.getElementById('tk-hashtags').value.trim();
+            if (!raw) { alert('请输入至少一个标签'); return; }
+            const hashtags = raw.split(',').map(s => s.trim()).filter(Boolean);
+            const workers = parseInt(document.getElementById('tk-workers').value) || 2;
+            const minScore = parseFloat(document.getElementById('tk-min-score').value) || 0;
+
+            const btn = document.getElementById('btn-tk-monitor');
+            btn.disabled = true;
+            btn.textContent = '监控中...';
+            document.getElementById('tk-result-area').style.display = 'none';
+            setStatus('tk-status', 'running', '<span class="progress-dot"></span>正在启动浏览器...');
+
+            try {
+                const res = await post('/api/tiktok/monitor', { hashtags, workers, min_score: minScore });
+                if (!res.ok) throw new Error(res.error);
+                pollTikTokJob(res.data.job_id);
+            } catch (e) {
+                setStatus('tk-status', 'error', '❌ 启动失败: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = '▶ 开始监控';
+            }
+        }
+
+        function pollTikTokJob(jobId) {
+            clearInterval(tkPollTimer);
+            tkPollTimer = setInterval(async () => {
+                try {
+                    const res = await get('/api/tiktok/monitor?job_id=' + jobId);
+                    if (!res.ok) return;
+                    const job = res.data;
+                    if (job.status === 'running') {
+                        setStatus('tk-status', 'running', '<span class="progress-dot"></span>' + (job.progress || '抓取中...'));
+                    } else if (job.status === 'done') {
+                        clearInterval(tkPollTimer);
+                        tkVideos = job.videos || [];
+                        setStatus('tk-status', 'done', `✅ 监控完成，共 ${tkVideos.length} 条视频`);
+                        document.getElementById('btn-tk-monitor').disabled = false;
+                        document.getElementById('btn-tk-monitor').textContent = '▶ 开始监控';
+                        buildTagFilter(tkVideos);
+                        renderTikTokVideos();
+                        document.getElementById('tk-result-area').style.display = 'block';
+                    } else if (job.status === 'error') {
+                        clearInterval(tkPollTimer);
+                        setStatus('tk-status', 'error', '❌ ' + (job.error || '监控失败'));
+                        document.getElementById('btn-tk-monitor').disabled = false;
+                        document.getElementById('btn-tk-monitor').textContent = '▶ 开始监控';
+                    }
+                } catch (e) { }
+            }, 2000);
+        }
+
+        function buildTagFilter(videos) {
+            const tags = [...new Set(videos.map(v => v.hashtag).filter(Boolean))];
+            const sel = document.getElementById('tk-filter-tag');
+            sel.innerHTML = '<option value="">全部</option>' +
+                tags.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+        }
+
+        function renderTikTokVideos() {
+            const filterTag = document.getElementById('tk-filter-tag').value;
+            const sortBy = document.getElementById('tk-sort').value;
+
+            let list = filterTag ? tkVideos.filter(v => v.hashtag === filterTag) : [...tkVideos];
+
+            list.sort((a, b) => {
+                if (sortBy === 'play') return (b.play_count || 0) - (a.play_count || 0);
+                if (sortBy === 'like') return (b.like_count || 0) - (a.like_count || 0);
+                if (sortBy === 'time') return new Date(b.published_at) - new Date(a.published_at);
+                return (b.growth_score || 0) - (a.growth_score || 0);
+            });
+
+            document.getElementById('tk-total').textContent = list.length;
+            const grid = document.getElementById('tk-video-grid');
+            if (!list.length) {
+                grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="icon">🎵</div><div>暂无符合条件的视频</div></div>';
+                return;
+            }
+
+            grid.innerHTML = list.map((v, i) => {
+                const score = (v.growth_score || 0).toFixed(4);
+                const scoreColor = v.growth_score > 0.1 ? '#4ade80' : v.growth_score > 0.03 ? '#f59e0b' : '#64748b';
+                const pubDate = v.published_at && v.published_at !== '0001-01-01T00:00:00Z'
+                    ? new Date(v.published_at).toLocaleDateString('zh-CN') : '未知';
+                return `
+                <div class="product-card" style="cursor:default">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                        <span class="product-badge badge-tiktok">${escHtml(v.hashtag || 'TikTok')}</span>
+                        <span style="font-size:12px;font-weight:700;color:${scoreColor}">🔥 ${score}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+                        ${statChip('▶ 播放', fmtNum(v.play_count))}
+                        ${statChip('❤️ 点赞', fmtNum(v.like_count))}
+                        ${statChip('💬 评论', fmtNum(v.comment_count))}
+                        ${statChip('↗ 分享', fmtNum(v.share_count))}
+                    </div>
+                    <div style="font-size:11px;color:#64748b;margin-bottom:10px">
+                        ${v.author ? `<span style="color:#94a3b8">@${escHtml(v.author)}</span> · ` : ''}📅 ${pubDate}
+                    </div>
+                    <div style="margin-bottom:8px">
+                        <div style="font-size:11px;color:#64748b;margin-bottom:4px">GrowthScore</div>
+                        <div style="height:5px;background:#22263a;border-radius:3px;overflow:hidden">
+                            <div style="width:${Math.min(v.growth_score * 500, 100)}%;height:100%;background:${scoreColor};border-radius:3px;transition:width .4s"></div>
+                        </div>
+                    </div>
+                    ${v.url ? `<a href="${escHtml(v.url)}" target="_blank" class="btn btn-sm btn-secondary" style="width:100%;justify-content:center;text-decoration:none">🔗 查看视频</a>` : '<div style="height:27px"></div>'}
+                </div>`;
+            }).join('');
+        }
+
+        function statChip(label, val) {
+            return `<div style="background:#0f1117;border-radius:5px;padding:5px 8px;font-size:11px">
+                <div style="color:#64748b">${label}</div>
+                <div style="color:#e2e8f0;font-weight:600;margin-top:1px">${val}</div>
+            </div>`;
+        }
+
+        function fmtNum(n) {
+            if (!n) return '0';
+            if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+            return String(n);
         }
 
         // ===== 初始化 =====
