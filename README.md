@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/27228588/README.md)
 # E-Commerce Analyzer
 
 跨境电商选品分析工具，支持多平台商品数据抓取与 AI 智能分析。
